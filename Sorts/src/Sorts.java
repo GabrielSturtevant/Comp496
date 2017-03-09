@@ -1,3 +1,10 @@
+/**
+ * Gabriel Sturtevant
+ * Project 1
+ * Comp 496ALG
+ * Feb 28th 2017
+ */
+
 import java.lang.Math;
 
 public class Sorts
