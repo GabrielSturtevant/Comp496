@@ -28,11 +28,38 @@ public class JobScheduler
     //Brute force. Try all n! orderings. Return the schedule with the most profit
     public Schedule bruteForceSolution()
     {
-        Schedule bruteForce = new Schedule();
+        Schedule bruteForce;
+        Schedule keeper = new Schedule();
+        int highestProfit = 0;
 
-        //TODO
+        Permutations permutations = new Permutations(this.nJobs);
+        int[][] possibilities = permutations.toReturn;
 
-        return bruteForce;
+        for (int i = 0; i < possibilities.length; i++) {
+            bruteForce = new Schedule();
+            for (int j = 0; j < possibilities[i].length; j++) {
+                int index = possibilities[i][j];
+
+                Job tempJob = new Job(
+                        jobs[index].jobNumber,
+                        jobs[index].length,
+                        jobs[index].deadline,
+                        jobs[index].profit
+                );
+
+                bruteForce.add(tempJob);
+            }
+            if(bruteForce.getProfit() > highestProfit) {
+                highestProfit = bruteForce.getProfit();
+                System.out.println("i: " + i);
+                for (int j = 0; j < possibilities[i].length; j++) {
+                    System.out.print(possibilities[i][j] + ",");
+                }
+                System.out.println("");
+                keeper = bruteForce;
+            }
+        }
+        return keeper;
     }
 
 
@@ -126,13 +153,29 @@ class Schedule
 
     public void add(Job job)
     {
+        if(this.schedule.size() == 0) {
+//            job.jobNumber = schedule.size();
+            job.start = 0;
+            job.finish = job.length + job.start;
+            if(job.start < job.deadline){
+                this.profit += job.profit;
+            }
+        } else {
+            Job lastJob = this.schedule.get(this.schedule.size() - 1);
+//            job.jobNumber = schedule.size();
+            job.start = lastJob.finish;
+            job.finish = job.start + job.length;
+            if(job.start < job.deadline){
+                this.profit += job.profit;
+            }
+        }
         this.schedule.add(job);
     }
 
 
     public int getProfit()
     {
-        return 1;
+        return this.profit;
     }
 
     public String toString()
@@ -150,7 +193,10 @@ class Schedule
 class Permutations
 {
     int size;
+    int length;
     int[] arr;
+    int[][] toReturn;
+    int index = 0;
     public Permutations(int size)
     {
         this.size = size;
@@ -158,15 +204,24 @@ class Permutations
         for (int i = 0; i < this.size; i++) {
             arr[i] = i;
         }
+        this.length = factorial(size);
+        toReturn = new int[this.length][this.size];
         permute(arr, 0, size-1);
+    }
+    private int factorial(int i){
+        if (i == 1)
+            return 1;
+        else {
+            return i * factorial(i-1);
+        }
     }
     private void permute(int[] a, int l, int r)
     {
         if (l == r){
             for (int i = 0; i < a.length; i++) {
-                System.out.print(a[i] + ",");
+                this.toReturn[index][i] = a[i];
             }
-            System.out.println("");
+            index++;
         }
         else
         {
