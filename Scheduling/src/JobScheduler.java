@@ -1,5 +1,4 @@
 import java.util.ArrayList;
-import java.util.PriorityQueue;
 
 public class JobScheduler
 {
@@ -10,10 +9,21 @@ public class JobScheduler
     {
         //Set nJobs
         //Fill jobs array. The kth job entered has JobNo = k;
+        nJobs = joblength.length;
+        jobs = new Job[nJobs];
+        for (int i = 0; i < nJobs; i++) {
+            jobs[i] = new Job(i, joblength[i], deadline[i], profit[i]);
+        }
     }
 
-    public void printJobs()  //prints the array jobs
-    {  }
+    public void printJobs()
+    //prints the array jobs
+    {
+        for (int i = this.nJobs-1; i >= 0; i--)
+        {
+            System.out.println(jobs[i].toString());
+        }
+    }
 
     //Brute force. Try all n! orderings. Return the schedule with the most profit
     public Schedule bruteForceSolution()
@@ -82,8 +92,12 @@ class Job
 
     public Job( int jn , int len, int d, int p)
     {
-        jobNumber = jn; length = len; deadline = d;
-        profit = p;  start = -1;  finish = -1;
+        jobNumber = jn;
+        length = len;
+        deadline = d;
+        profit = p;
+        start = -1;
+        finish = -1;
     }
 
 
@@ -127,9 +141,50 @@ class Schedule
         for(int k = 0 ; k < schedule.size(); k++)
         {
             s = s + "\n"  + schedule.get(k);
-
         }
 
         return s;
     }
 }// end of Schedule class
+
+class Permutations
+{
+    int size;
+    int[] arr;
+    public Permutations(int size)
+    {
+        this.size = size;
+        arr = new int[size];
+        for (int i = 0; i < this.size; i++) {
+            arr[i] = i;
+        }
+        permute(arr, 0, size-1);
+    }
+    private void permute(int[] a, int l, int r)
+    {
+        if (l == r){
+            for (int i = 0; i < a.length; i++) {
+                System.out.print(a[i] + ",");
+            }
+            System.out.println("");
+        }
+        else
+        {
+            for (int i = l; i <= r; i++)
+            {
+                a = swap(a,l,i);
+                permute(a, l+1, r);
+                a = swap(a,l,i);
+            }
+        }
+    }
+
+    public int[] swap(int[] a, int i, int j)
+    {
+        int temp;
+        temp = a[i] ;
+        a[i] = a[j];
+        a[j] = temp;
+        return a;
+    }
+}
