@@ -1,4 +1,6 @@
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.PriorityQueue;
 
 public class JobScheduler
 {
@@ -51,11 +53,6 @@ public class JobScheduler
             }
             if(bruteForce.getProfit() > highestProfit) {
                 highestProfit = bruteForce.getProfit();
-                System.out.println("i: " + i);
-                for (int j = 0; j < possibilities[i].length; j++) {
-                    System.out.print(possibilities[i][j] + ",");
-                }
-                System.out.println("");
                 keeper = bruteForce;
             }
         }
@@ -68,7 +65,16 @@ public class JobScheduler
     {
         Schedule earliestDeadline = new Schedule();
 
-        //TODO
+        Comparator<Job> comparator = new EarliestDeadlineComparator();
+        PriorityQueue<Job> queue = new PriorityQueue<Job>(11, comparator);
+
+        for (int i = 0; i < nJobs; i++) {
+            queue.add(jobs[i]);
+        }
+
+        while(!queue.isEmpty()){
+            earliestDeadline.add(queue.poll());
+        }
 
         return earliestDeadline;
     }
@@ -78,7 +84,16 @@ public class JobScheduler
     {
         Schedule shortestJob = new Schedule();
 
-        //TODO
+        Comparator<Job> comparator = new ShortestJobComparator();
+        PriorityQueue<Job> queue = new PriorityQueue<Job>(11, comparator);
+
+        for (int i = 0; i < nJobs; i++) {
+            queue.add(jobs[i]);
+        }
+
+        while(!queue.isEmpty()){
+            shortestJob.add(queue.poll());
+        }
 
         return shortestJob;
     }
@@ -90,6 +105,16 @@ public class JobScheduler
 
         //TODO
 
+        Comparator<Job> comparator = new MostProfitComparator();
+        PriorityQueue<Job> queue = new PriorityQueue<Job>(11, comparator);
+
+        for (int i = 0; i < nJobs; i++) {
+            queue.add(jobs[i]);
+        }
+
+        while(!queue.isEmpty()){
+            highestProfit.add(queue.poll());
+        }
         return highestProfit;
     }
 
@@ -154,7 +179,6 @@ class Schedule
     public void add(Job job)
     {
         if(this.schedule.size() == 0) {
-//            job.jobNumber = schedule.size();
             job.start = 0;
             job.finish = job.length + job.start;
             if(job.start < job.deadline){
@@ -162,7 +186,6 @@ class Schedule
             }
         } else {
             Job lastJob = this.schedule.get(this.schedule.size() - 1);
-//            job.jobNumber = schedule.size();
             job.start = lastJob.finish;
             job.finish = job.start + job.length;
             if(job.start < job.deadline){
@@ -241,5 +264,41 @@ class Permutations
         a[i] = a[j];
         a[j] = temp;
         return a;
+    }
+}
+
+class EarliestDeadlineComparator implements Comparator<Job> {
+    @Override
+    public int compare(Job a, Job b) {
+        if (a.deadline < b.deadline)
+            return -1;
+        else if (a.deadline > b.deadline)
+            return 1;
+        else
+            return 0;
+    }
+}
+
+class ShortestJobComparator implements Comparator<Job> {
+    @Override
+    public int compare(Job a, Job b) {
+        if (a.length < b.length)
+            return -1;
+        else if (a.length > b.length)
+            return 1;
+        else
+            return 0;
+    }
+}
+
+class MostProfitComparator implements Comparator<Job> {
+    @Override
+    public int compare(Job a, Job b) {
+        if (a.profit > b.profit)
+            return -1;
+        else if (a.profit < b.profit)
+            return 1;
+        else
+            return 0;
     }
 }
