@@ -7,6 +7,32 @@ public class JobScheduler
     private int nJobs;
     private Job[]  jobs;
 
+    public static void main(String[] args) {
+//        int[] length = {2,3,1,10,7,4,6,9,3,2,5,2,5,7,7,6,3,7,8,4,5,2,9,10,5};
+//        int[] deadline = {10,12,15,8,10,9,22,12,15,35,29,32,45,41,13,16,10,20,10,4,18,15,5,9,30};
+//        int[] profit = {2,5,13,28,8,7,6,5,3,4,9,7,6,9,14,2,7,11,3,10,8,5,9,10,3};
+
+        int[] length = {7, 4, 2, 5};
+        int[] deadline = {7, 16, 8, 10};
+        int[] profit = {10, 9, 14, 13};
+        JobScheduler scheduler = new JobScheduler(length, deadline, profit);
+
+        System.out.println("Brute Force: ");
+        System.out.println(scheduler.bruteForceSolution().toString());
+
+        System.out.println("\nEarliest Deadline First: ");
+        System.out.println(scheduler.makeScheduleEDF().toString());
+
+        System.out.println("\nShortest Job First: ");
+        System.out.println(scheduler.makeScheduleSJF().toString());
+
+        System.out.println("\nHighest Profit First: ");
+        System.out.println(scheduler.makeScheduleHPF().toString());
+
+        System.out.println("\nNew Approximate Schedule: ");
+        System.out.println(scheduler.newApproxSchedule().toString());
+    }
+
     public JobScheduler( int[] joblength, int[] deadline, int[] profit)
     {
         //Set nJobs
@@ -30,6 +56,10 @@ public class JobScheduler
     //Brute force. Try all n! orderings. Return the schedule with the most profit
     public Schedule bruteForceSolution()
     {
+        if(nJobs > 11){
+            System.out.println("There are too many jobs to handle via brute force");
+            return new Schedule();
+        }
         Schedule bruteForce;
         Schedule keeper = new Schedule();
         int highestProfit = 0;
@@ -51,6 +81,7 @@ public class JobScheduler
 
                 bruteForce.add(tempJob);
             }
+            bruteForce.combineLists();
             if(bruteForce.getProfit() > highestProfit) {
                 highestProfit = bruteForce.getProfit();
                 keeper = bruteForce;
@@ -66,7 +97,7 @@ public class JobScheduler
         Schedule earliestDeadline = new Schedule();
 
         Comparator<Job> comparator = new EarliestDeadlineComparator();
-        PriorityQueue<Job> queue = new PriorityQueue<Job>(11, comparator);
+        PriorityQueue<Job> queue = new PriorityQueue<Job>(nJobs, comparator);
 
         for (int i = 0; i < nJobs; i++) {
             queue.add(jobs[i]);
@@ -75,6 +106,8 @@ public class JobScheduler
         while(!queue.isEmpty()){
             earliestDeadline.add(queue.poll());
         }
+
+        earliestDeadline.combineLists();
 
         return earliestDeadline;
     }
@@ -85,7 +118,7 @@ public class JobScheduler
         Schedule shortestJob = new Schedule();
 
         Comparator<Job> comparator = new ShortestJobComparator();
-        PriorityQueue<Job> queue = new PriorityQueue<Job>(11, comparator);
+        PriorityQueue<Job> queue = new PriorityQueue<Job>(nJobs, comparator);
 
         for (int i = 0; i < nJobs; i++) {
             queue.add(jobs[i]);
@@ -95,6 +128,8 @@ public class JobScheduler
             shortestJob.add(queue.poll());
         }
 
+        shortestJob.combineLists();
+
         return shortestJob;
     }
 
@@ -103,10 +138,8 @@ public class JobScheduler
     {
         Schedule highestProfit = new Schedule();
 
-        //TODO
-
-        Comparator<Job> comparator = new MostProfitComparator();
-        PriorityQueue<Job> queue = new PriorityQueue<Job>(11, comparator);
+        Comparator<Job> comparator = new HighestProfitComparator();
+        PriorityQueue<Job> queue = new PriorityQueue<Job>(nJobs, comparator);
 
         for (int i = 0; i < nJobs; i++) {
             queue.add(jobs[i]);
@@ -115,6 +148,9 @@ public class JobScheduler
         while(!queue.isEmpty()){
             highestProfit.add(queue.poll());
         }
+
+        highestProfit.combineLists();
+
         return highestProfit;
     }
 
@@ -122,11 +158,15 @@ public class JobScheduler
     public Schedule newApproxSchedule()
     //Your own creation. Must be <= O(n3)
     {
-        Schedule approxSchedule = new Schedule();
+        Schedule firstComeFirstServe = new Schedule();
 
-        //TODO
+        for (int i = 0; i < nJobs; i++) {
+            firstComeFirstServe.add(jobs[i]);
+        }
 
-        return approxSchedule;
+        firstComeFirstServe.combineLists();
+
+        return firstComeFirstServe;
     }
 
 }//end of JobScheduler class
@@ -167,13 +207,15 @@ class Job
 // ----------------------------------------------------
 class Schedule
 {
-    ArrayList<Job> schedule;
     int profit;
+    ArrayList<Job> schedule;
+    ArrayList<Job> tempSchedule;
 
     public Schedule()
     {
         profit = 0;
         schedule = new ArrayList<Job>();
+        tempSchedule = new ArrayList<Job>();
     }
 
     public void add(Job job)
@@ -181,20 +223,35 @@ class Schedule
         if(this.schedule.size() == 0) {
             job.start = 0;
             job.finish = job.length + job.start;
-            if(job.start < job.deadline){
+            if(job.finish <= job.deadline){
                 this.profit += job.profit;
+                this.schedule.add(job);
+            } else {
+                this.tempSchedule.add(job);
             }
         } else {
             Job lastJob = this.schedule.get(this.schedule.size() - 1);
             job.start = lastJob.finish;
             job.finish = job.start + job.length;
-            if(job.start < job.deadline){
+            if(job.finish <= job.deadline){
                 this.profit += job.profit;
+                this.schedule.add(job);
+            } else {
+                this.tempSchedule.add(job);
             }
         }
-        this.schedule.add(job);
     }
 
+    public void combineLists() {
+        while(!this.tempSchedule.isEmpty()){
+            Job lastJob = this.schedule.get(this.schedule.size() - 1);
+            Job job = this.tempSchedule.get(0);
+            this.tempSchedule.remove(0);
+            job.start = lastJob.finish;
+            job.finish = job.start + job.length;
+            this.schedule.add(job);
+        }
+    }
 
     public int getProfit()
     {
@@ -291,7 +348,7 @@ class ShortestJobComparator implements Comparator<Job> {
     }
 }
 
-class MostProfitComparator implements Comparator<Job> {
+class HighestProfitComparator implements Comparator<Job> {
     @Override
     public int compare(Job a, Job b) {
         if (a.profit > b.profit)
