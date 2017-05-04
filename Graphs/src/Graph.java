@@ -1,5 +1,6 @@
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class Graph {
     private ArrayList<EdgeNode>[] adjList;
@@ -10,6 +11,8 @@ public class Graph {
     public static void main(String[] args) {
         Graph foo = new Graph("graph.txt");
         foo.printGraph();
+        Graph traverse = foo.dfsTraversal(3);
+        traverse.printGraph();
     }
 
     public Graph(String inputFileName) {
@@ -23,11 +26,11 @@ public class Graph {
             boolean first = true;
             String[] parts;
             while ((text = reader.readLine()) != null) {
-                if(first){
+                if (first) {
                     first = !first;
-                    this.nVertices = Integer.parseInt(text);
-                    this.addGraph(this.nVertices);
-                }else {
+                    int n = Integer.parseInt(text);
+                    this.addGraph(n);
+                } else {
                     parts = text.split(" ");
                     this.addEdge(
                             Integer.parseInt(parts[0]),
@@ -49,10 +52,11 @@ public class Graph {
     }//creates Graph from data in file
 
     private void addGraph(int n) {
+        this.nVertices = n;
         this.totalWeight = 0;
         this.nEdges = 0;
-        this.adjList = new ArrayList[this.nVertices];
-        for (int i = 0; i < this.nVertices; i++) {
+        this.adjList = new ArrayList[n];
+        for (int i = 0; i < n; i++) {
             this.adjList[i] = new ArrayList<>();
         }
     }   //Creates a  Graph with n vertices and 0 edges
@@ -63,22 +67,24 @@ public class Graph {
 
     public void addEdge(int i, int j, int weight) {
         this.adjList[i].add(new EdgeNode(i, j, weight));
-        this.adjList[j].add(new EdgeNode(j, i, weight));
+        if( i != j) {
+            this.adjList[j].add(new EdgeNode(j, i, weight));
+        }
         this.totalWeight += weight;
         this.nEdges++;
     } //adds an edge to the graph
 
     public void printGraph() {
         //prints nVertices, nEdges, and adjacency lists and total edge weight
-        String toPrint = "Graph: nVertices = "+this.nVertices+" nEdges = "+this.nEdges;
-        toPrint += " totalWeight = "+this.totalWeight+"\nAdjacency Lists";
+        String toPrint = "Graph: nVertices = " + this.nVertices + " nEdges = " + this.nEdges;
+        toPrint += " totalWeight = " + this.totalWeight + "\nAdjacency Lists";
         System.out.println(toPrint);
         for (int i = 0; i < this.adjList.length; i++) {
-            toPrint = "v= "+i+" [";
-            for(EdgeNode node: this.adjList[i]) {
+            toPrint = "v= " + i + " [";
+            for (EdgeNode node : this.adjList[i]) {
                 toPrint += node.toString() + ", ";
             }
-            toPrint = toPrint.substring(0, toPrint.length() -2);
+            toPrint = toPrint.substring(0, toPrint.length() - 2);
             toPrint += "]";
             System.out.println(toPrint);
         }
@@ -111,7 +117,51 @@ public class Graph {
             Otherwise, return null.
 
         */
-        return this;
+        boolean[] visited = new boolean[this.nVertices];
+        Arrays.fill(visited, false);
+        Graph toReturn = new Graph(this.get_nVertices());
+
+        toReturn = this.dfsTraversal(start, visited, toReturn);
+
+        while (!missing_nodes(visited)) {
+            for (int i = 0; i < visited.length; i++) {
+                if(!visited[i]){
+                    toReturn = this.dfsTraversal(i, visited, toReturn);
+                    break;
+                }
+            }
+        }
+        return toReturn;
+    }
+
+    private Graph dfsTraversal(int start, boolean[] visited, Graph toReturn){
+        visited[start] = true;
+
+        for(EdgeNode node : this.adjList[start]) {
+            int next = node.vertex2;
+
+            if(!visited[next]){
+                toReturn.addEdge(node.vertex1, node.vertex2, node.weight);
+                toReturn = dfsTraversal(next,visited,toReturn);
+            }
+        }
+
+        return toReturn;
+    }
+
+    /**
+     * Returns false if any members of the passed array are false,
+     * otherwise returns true
+     * @param check : boolean array
+     * @return boolean
+     */
+    private boolean missing_nodes(boolean[] check){
+        for (int i = 0; i < check.length; i++) {
+            if(!check[i]){
+                return false;
+            }
+        }
+        return true;
     }
 
 
@@ -179,7 +229,6 @@ class EdgeNode implements Comparable<EdgeNode> {
     }
 
     public String toString() {
-
         String s = "(";
         s = s + vertex1 + "," + vertex2 + "," + weight + ")";
         return s;
