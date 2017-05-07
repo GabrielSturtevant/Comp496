@@ -1,23 +1,16 @@
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.PriorityQueue;
 
 public class Graph {
 	private ArrayList<EdgeNode>[] adjList;
+	private PriorityQueue<EdgeNode> EdgeQueue = new PriorityQueue<>();
 	private int nVertices;
 	private int nEdges;
 	private int totalWeight;
-
-	public static void main (String[] args) {
-		Graph foo = new Graph("graph.txt");
-		foo.printGraph();
-		System.out.println("\nTraversal:");
-		System.out.println("----------------------------");
-		Graph traverse = foo.dfsTraversal(0);
-		System.out.println("\nOutcome:");
-		System.out.println("----------------------------");
-		traverse.printGraph();
-	}
+	private boolean isConnected = true;
+	private boolean shouldPrint = true;
 
 	public Graph (String inputFileName) {
 		File file = new File(inputFileName);
@@ -65,19 +58,22 @@ public class Graph {
 		this.addGraph(n);
 	}   //Creates a  Graph with n vertices and 0 edges
 
+	private void addEdge (EdgeNode a) {
+		addEdge(a.vertex1, a.vertex2, a.weight);
+	}
+
 	public void addEdge (int i, int j, int weight) {
 		this.adjList[i].add(new EdgeNode(i, j, weight));
-		if (i != j) {
-			this.adjList[j].add(new EdgeNode(j, i, weight));
-		}
+		this.adjList[j].add(new EdgeNode(j, i, weight));
+		this.EdgeQueue.add(new EdgeNode(i, j, weight));
 		this.totalWeight += weight;
 		this.nEdges++;
 	} //adds an edge to the graph
 
 	public void printGraph () {
 		//prints nVertices, nEdges, and adjacency lists and total edge weight
-		String toPrint = "Graph: nVertices = " + this.get_nVertices()+ " nEdges = " + this.get_nEdges();
-		toPrint += " totalWeight = " + this.get_TotalWeightOfEdges()+ "\nAdjacency Lists";
+		String toPrint = "Graph: nVertices = " + this.get_nVertices() + " nEdges = " + this.get_nEdges();
+		toPrint += " totalWeight = " + this.get_TotalWeightOfEdges() + "\nAdjacency Lists";
 		System.out.println(toPrint);
 		for (int i = 0; i < this.adjList.length; i++) {
 			toPrint = "v= " + i + " ";
@@ -86,13 +82,12 @@ public class Graph {
 			for (EdgeNode node : this.adjList[i]) {
 				toPrint += node.toString() + ", ";
 			}
-			if(toPrint != "") {
+			if (toPrint != "") {
 				toPrint = "[" + toPrint;
 				toPrint = toPrint.substring(0, toPrint.length() - 2);
 				toPrint += "]";
-			}
-			else
-				toPrint = "Unconnected node";
+			} else
+				toPrint = "Singleton";
 			System.out.println(toPrint);
 		}
 	}
@@ -112,7 +107,7 @@ public class Graph {
 
 	public Graph dfsTraversal (int start) {
 	    /* Use recursion by calling a recursive dfs method;
-            Visit all nodes
+	        Visit all nodes
             If graph is not connected you will need to call dfs more than once to visit all
             node and to print out the information below.
             Print the following information gleaned from the dfs traversal
@@ -128,10 +123,12 @@ public class Graph {
 		Arrays.fill(visited, false);
 		Graph toReturn = new Graph(this.get_nVertices());
 
-		toReturn = this.dfsTraversal(start, -1 , visited, toReturn);
+		toReturn = this.dfsTraversal(start, -1, visited, toReturn);
 
 		while (!missing_nodes(visited)) {
-			System.out.println("Graph is not connected");
+			this.isConnected = false;
+			if(this.shouldPrint)
+				System.out.println("Graph is not connected");
 			for (int i = 0; i < visited.length; i++) {
 				if (!visited[i]) {
 					toReturn = this.dfsTraversal(i, -1, visited, toReturn);
@@ -142,10 +139,11 @@ public class Graph {
 		return toReturn;
 	}
 
-	private boolean isNeighbor(int next, int last) {
-		if(last == -1) return false;
-		for(EdgeNode node : this.adjList[last]) {
-			if(node.vertex2 == next)
+	private boolean isNeighbor (int next, int last) {
+		if (last == -1)
+			return false;
+		for (EdgeNode node : this.adjList[last]) {
+			if (node.vertex2 == next)
 				return true;
 		}
 		return false;
@@ -153,19 +151,22 @@ public class Graph {
 
 	private Graph dfsTraversal (int start, int last, boolean[] visited, Graph toReturn) {
 		visited[start] = true;
-		System.out.println("Visited: " + start);
+		if(this.shouldPrint)
+			System.out.println("Visited: " + start);
 
 		for (EdgeNode node : this.adjList[start]) {
 			int next = node.vertex2;
 
-			if(visited[next] && (next != last) && this.isNeighbor(next, last)){
-				System.out.println("Cycle: "+last+"->"+start+"->"+next);
+			if (visited[next] && (next != last) && this.isNeighbor(next, last)) {
+				if(this.shouldPrint)
+					System.out.println("Cycle: " + last + "->" + start + "->" + next);
 			}
 
 			if (!visited[next]) {
 				toReturn.addEdge(node.vertex1, node.vertex2, node.weight);
 				toReturn = dfsTraversal(next, start, visited, toReturn);
-				System.out.println("Return to: " + start);
+				if (this.shouldPrint)
+					System.out.println("Return to: " + start);
 			}
 		}
 
@@ -189,12 +190,41 @@ public class Graph {
 	}
 
 	public void dijkstraShortestPaths (int start) {
-        /* Implement Dijkstra algorithm from text as discussed in class;
-        Use the Java PriorityQueue<EdgeNode>   class. Use EdgeNode class below.
+	    /* Implement Dijkstra algorithm from text as discussed in class;
+	    Use the Java PriorityQueue<EdgeNode>   class. Use EdgeNode class below.
         This class has no updateKey method
         To simulate an updateKey method in priority queue, see Problem C-14.3 from text.
         Prints shortest paths from vertex start to all other vertices reachable from start
         */
+		PQNode[] nodeArray = new PQNode[this.get_nVertices()];
+		int[] distances = new int[this.get_nVertices()];
+		int[] previous = new int[this.get_nVertices()];
+		Arrays.fill(distances, Integer.MAX_VALUE);
+		Arrays.fill(previous, -2);
+		distances[start] = 0;
+		previous[start] = -1;
+		PriorityQueue<PQNode> Nodes = new PriorityQueue<>();
+		for (int i = 0; i < this.nVertices; i++) {
+			PQNode temp = new PQNode(i, distances[i]);
+			Nodes.add(temp);
+			nodeArray[i] = temp;
+		}
+		while (Nodes.peek().distance != Integer.MAX_VALUE) {
+			PQNode current = Nodes.poll();
+			for (EdgeNode node : this.adjList[current.vertex]) {
+				if (Nodes.contains(nodeArray[node.vertex2])) {
+					int currentWeight = distances[current.vertex] + node.weight;
+					if (currentWeight < distances[node.vertex2]) {
+						distances[node.vertex2] = currentWeight;
+						previous[node.vertex2] = current.vertex;
+						PQNode tempNode = new PQNode(node.vertex2, currentWeight);
+						Nodes.add(tempNode);
+						nodeArray[node.vertex2] = tempNode;
+					}
+				}
+			}
+		}
+		System.out.println("Hi");
 	}
 
 	public Graph KruskalMST () {
@@ -206,7 +236,27 @@ public class Graph {
          else
         Print a message and return null
         */
-		return this;
+
+		Graph toReturn = new Graph(this.get_nVertices());
+
+		while (!this.EdgeQueue.isEmpty()) {
+			EdgeNode temp = this.EdgeQueue.poll();
+			if (!(!toReturn.adjList[temp.vertex1].isEmpty() && !toReturn.adjList[temp.vertex2].isEmpty())) {
+				toReturn.addEdge(temp);
+			}
+		}
+
+		//The following two lines run dfTraversal in order to determine whether or not the graph is connected
+		toReturn.shouldPrint = false;
+		toReturn.dfsTraversal(0);
+
+		if(toReturn.isConnected) {
+			toReturn.printGraph();
+			return toReturn;
+		} else {
+			System.out.println("The graph is not connected");
+			return null;
+		}
 	}
 }
 
