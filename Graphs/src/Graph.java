@@ -23,11 +23,13 @@ public class Graph {
 			boolean first = true;
 			String[] parts;
 			while ((text = reader.readLine()) != null) {
+				text = text.replaceAll("( )+", " ");
 				if (first) {
 					first = !first;
 					int n = Integer.parseInt(text);
 					this.addGraph(n);
-				} else {
+					text = reader.readLine(); // Handles the empty line following the number of nodes in the graph
+				} else{
 					parts = text.split(" ");
 					this.addEdge(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
 				}
@@ -136,7 +138,11 @@ public class Graph {
 				}
 			}
 		}
-		return toReturn;
+		if (!this.isConnected){
+			return null;
+		}else {
+			return toReturn;
+		}
 	}
 
 	private boolean isNeighbor (int next, int last) {
@@ -173,13 +179,6 @@ public class Graph {
 		return toReturn;
 	}
 
-	/**
-	 * Returns false if any members of the passed array are false,
-	 * otherwise returns true
-	 *
-	 * @param check : boolean array
-	 * @return boolean
-	 */
 	private boolean missing_nodes (boolean[] check) {
 		for (int i = 0; i < check.length; i++) {
 			if (!check[i]) {
@@ -224,10 +223,25 @@ public class Graph {
 				}
 			}
 		}
-		System.out.println("Hi");
+		String toPrint;
+		int current;
+		//TODO print paths
+		for (int i = 0; i < previous.length; i++) {
+			current = i;
+			toPrint = ((previous[current] == -1)? "Start": ((current == -2)? "Unreachable" : "->"+current));
+			while (previous[current] != -1 && previous[current] != -2){
+				current = previous[current];
+				toPrint = ((previous[current] == -1)? "Start": "->"+current) +toPrint;
+			}
+			if (previous[current] == -2) {
+				System.out.println(i+": Unreachable from start");
+			} else {
+				System.out.println(i+": "+toPrint);
+			}
+		}
 	}
 
-	public Graph KruskalMST () {
+	public Graph kruskalMST () {
         /* Implement Kruskal algorithm from text.
         Use clusters.
         If graph is connected
@@ -237,26 +251,27 @@ public class Graph {
         Print a message and return null
         */
 
+        //The following two lines run dfTraversal in order to determine whether or not the graph is connected
+		this.shouldPrint = false;
+		this.dfsTraversal(0);
+		this.shouldPrint = true;
+
+		if(!this.isConnected){
+			System.out.println("The graph is not connected");
+			return null;
+		}
+
 		Graph toReturn = new Graph(this.get_nVertices());
 
 		while (!this.EdgeQueue.isEmpty()) {
 			EdgeNode temp = this.EdgeQueue.poll();
 			if (!(!toReturn.adjList[temp.vertex1].isEmpty() && !toReturn.adjList[temp.vertex2].isEmpty())) {
 				toReturn.addEdge(temp);
+				System.out.println("Adding edge: "+temp.toString());
 			}
 		}
 
-		//The following two lines run dfTraversal in order to determine whether or not the graph is connected
-		toReturn.shouldPrint = false;
-		toReturn.dfsTraversal(0);
-
-		if(toReturn.isConnected) {
-			toReturn.printGraph();
-			return toReturn;
-		} else {
-			System.out.println("The graph is not connected");
-			return null;
-		}
+		return toReturn;
 	}
 }
 

@@ -12,6 +12,6 @@ public class Driver {
 		System.out.println("----------------------------");
 		traverse.printGraph();
 		foo.dijkstraShortestPaths(0);*/
-		foo.KruskalMST();
+		foo.kruskalMST();
 	}
 }
