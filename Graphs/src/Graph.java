@@ -1,7 +1,9 @@
 import java.io.*;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.PriorityQueue;
+import java.util.stream.IntStream;
 
 public class Graph {
 	private ArrayList<EdgeNode>[] adjList;
@@ -10,7 +12,7 @@ public class Graph {
 	private int nEdges;
 	private int totalWeight;
 	private boolean isConnected = true;
-	private boolean shouldPrint = true;
+	private boolean Print = true;
 
 	public Graph (String inputFileName) {
 		File file = new File(inputFileName);
@@ -20,18 +22,24 @@ public class Graph {
 			reader = new BufferedReader(new FileReader(file));
 			String text;
 
-			boolean first = true;
-			String[] parts;
+			boolean firstLine = true;
+			String[] edgeString;
 			while ((text = reader.readLine()) != null) {
 				text = text.replaceAll("( )+", " ");
-				if (first) {
-					first = !first;
+				if (firstLine) {
+					firstLine = !firstLine;
 					int n = Integer.parseInt(text);
 					this.addGraph(n);
-					text = reader.readLine(); // Handles the empty line following the number of nodes in the graph
+
+					// Handles the empty line following the number of nodes in the graph
+					text = reader.readLine();
 				} else{
-					parts = text.split(" ");
-					this.addEdge(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
+					edgeString = text.split(" ");
+					int a, b, c;
+					a = Integer.parseInt(edgeString[0]);
+					b = Integer.parseInt(edgeString[1]);
+					c = Integer.parseInt(edgeString[2]);
+					this.addEdge(a, b, c);
 				}
 			}
 		} catch (FileNotFoundException e) {
@@ -81,7 +89,9 @@ public class Graph {
 			toPrint = "v= " + i + " ";
 			System.out.print(toPrint);
 			toPrint = "";
-			for (EdgeNode node : this.adjList[i]) {
+			ArrayList<EdgeNode> edges = this.adjList[i];
+			for (int j = 0; j < edges.size(); j++) {
+				EdgeNode node = edges.get(j);
 				toPrint += node.toString() + ", ";
 			}
 			if (toPrint != "") {
@@ -129,7 +139,7 @@ public class Graph {
 
 		while (!missing_nodes(visited)) {
 			this.isConnected = false;
-			if(this.shouldPrint)
+			if(this.Print)
 				System.out.println("Graph is not connected");
 			for (int i = 0; i < visited.length; i++) {
 				if (!visited[i]) {
@@ -146,33 +156,33 @@ public class Graph {
 	}
 
 	private boolean isNeighbor (int next, int last) {
-		if (last == -1)
-			return false;
-		for (EdgeNode node : this.adjList[last]) {
-			if (node.vertex2 == next)
-				return true;
-		}
-		return false;
+		return last != -1 && this.adjList[last].stream().anyMatch(node -> node.vertex2 == next);
 	}
 
 	private Graph dfsTraversal (int start, int last, boolean[] visited, Graph toReturn) {
 		visited[start] = true;
-		if(this.shouldPrint)
-			System.out.println("Visited: " + start);
+		if(this.Print)
+			System.out.println(MessageFormat.format("Visited: {0}", start));
 
 		for (EdgeNode node : this.adjList[start]) {
 			int next = node.vertex2;
 
-			if (visited[next] && (next != last) && this.isNeighbor(next, last)) {
-				if(this.shouldPrint)
-					System.out.println("Cycle: " + last + "->" + start + "->" + next);
+			if (visited[next]) {
+				if ((next != last)) {
+					if (this.isNeighbor(next, last)) {
+						if (this.Print) {
+							System.out.println(MessageFormat.format("Cycle: {0}->{1}->{2}", last, start, next));
+						}
+					}
+				}
 			}
 
 			if (!visited[next]) {
 				toReturn.addEdge(node.vertex1, node.vertex2, node.weight);
 				toReturn = dfsTraversal(next, start, visited, toReturn);
-				if (this.shouldPrint)
-					System.out.println("Return to: " + start);
+				if (this.Print) {
+					System.out.println(MessageFormat.format("Return to: {0}", start));
+				}
 			}
 		}
 
@@ -180,12 +190,7 @@ public class Graph {
 	}
 
 	private boolean missing_nodes (boolean[] check) {
-		for (int i = 0; i < check.length; i++) {
-			if (!check[i]) {
-				return false;
-			}
-		}
-		return true;
+		return IntStream.range(0, check.length).allMatch(i -> check[i]);
 	}
 
 	public void dijkstraShortestPaths (int start) {
@@ -203,14 +208,18 @@ public class Graph {
 		distances[start] = 0;
 		previous[start] = -1;
 		PriorityQueue<PQNode> Nodes = new PriorityQueue<>();
-		for (int i = 0; i < this.nVertices; i++) {
+		int i = 0;
+		while (i < this.nVertices) {
 			PQNode temp = new PQNode(i, distances[i]);
 			Nodes.add(temp);
 			nodeArray[i] = temp;
+			i++;
 		}
 		while (Nodes.peek().distance != Integer.MAX_VALUE) {
 			PQNode current = Nodes.poll();
-			for (EdgeNode node : this.adjList[current.vertex]) {
+			ArrayList<EdgeNode> edgeNodes = this.adjList[current.vertex];
+			for (int j = 0, edgeNodesSize = edgeNodes.size(); j < edgeNodesSize; j++) {
+				EdgeNode node = edgeNodes.get(j);
 				if (Nodes.contains(nodeArray[node.vertex2])) {
 					int currentWeight = distances[current.vertex] + node.weight;
 					if (currentWeight < distances[node.vertex2]) {
@@ -226,18 +235,22 @@ public class Graph {
 		String toPrint;
 		int current;
 		//TODO print paths
-		for (int i = 0; i < previous.length; i++) {
+		i = 0;
+		while (i < previous.length) {
 			current = i;
 			toPrint = ((previous[current] == -1)? "Start": ((current == -2)? "Unreachable" : "->"+current));
-			while (previous[current] != -1 && previous[current] != -2){
-				current = previous[current];
-				toPrint = ((previous[current] == -1)? "Start": "->"+current) +toPrint;
+			if ((previous[current] != -1) && (previous[current] != -2)) {
+				do {
+					current = previous[current];
+					toPrint = ((previous[current] == -1) ? "Start" : "->" + current) + toPrint;
+				} while ((previous[current] != -1) && (previous[current] != -2));
 			}
 			if (previous[current] == -2) {
 				System.out.println(i+": Unreachable from start");
 			} else {
 				System.out.println(i+": "+toPrint);
 			}
+			i++;
 		}
 	}
 
@@ -252,26 +265,29 @@ public class Graph {
         */
 
         //The following two lines run dfTraversal in order to determine whether or not the graph is connected
-		this.shouldPrint = false;
+		this.Print = false;
 		this.dfsTraversal(0);
-		this.shouldPrint = true;
+		this.Print = true;
 
-		if(!this.isConnected){
+		if (this.isConnected) {
+
+			Graph toReturn = new Graph(this.get_nVertices());
+
+			if (!this.EdgeQueue.isEmpty()) {
+				do {
+					EdgeNode temp = this.EdgeQueue.poll();
+					if (!(!toReturn.adjList[temp.vertex1].isEmpty() && !toReturn.adjList[temp.vertex2].isEmpty())) {
+						toReturn.addEdge(temp);
+						System.out.println("Adding edge: " + temp.toString());
+					}
+				} while (!this.EdgeQueue.isEmpty());
+			}
+
+			return toReturn;
+		} else {
 			System.out.println("The graph is not connected");
 			return null;
 		}
-
-		Graph toReturn = new Graph(this.get_nVertices());
-
-		while (!this.EdgeQueue.isEmpty()) {
-			EdgeNode temp = this.EdgeQueue.poll();
-			if (!(!toReturn.adjList[temp.vertex1].isEmpty() && !toReturn.adjList[temp.vertex2].isEmpty())) {
-				toReturn.addEdge(temp);
-				System.out.println("Adding edge: "+temp.toString());
-			}
-		}
-
-		return toReturn;
 	}
 }
 
