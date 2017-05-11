@@ -11,6 +11,15 @@ public class Graph {
 	private int totalWeight;
 	private boolean isConnected = true;
 	private boolean shouldPrint = true;
+	private boolean cycles = false;
+
+	public static void main(String[] args) {
+		Graph foo = new Graph("graph.txt");
+
+		foo .dfsTraversal(0);
+
+		Graph foo2 = foo.kruskalMST();
+	}
 
 	public Graph (String inputFileName) {
 		File file = new File(inputFileName);
@@ -141,18 +150,11 @@ public class Graph {
 		if (!this.isConnected){
 			return null;
 		}else {
+		    if(this.cycles && this.shouldPrint) {
+				System.out.println("The graph has cycles");
+		    }
 			return toReturn;
 		}
-	}
-
-	private boolean isNeighbor (int next, int last) {
-		if (last == -1)
-			return false;
-		for (EdgeNode node : this.adjList[last]) {
-			if (node.vertex2 == next)
-				return true;
-		}
-		return false;
 	}
 
 	private Graph dfsTraversal (int start, int last, boolean[] visited, Graph toReturn) {
@@ -163,9 +165,8 @@ public class Graph {
 		for (EdgeNode node : this.adjList[start]) {
 			int next = node.vertex2;
 
-			if (visited[next] && (next != last) && this.isNeighbor(next, last)) {
-				if(this.shouldPrint)
-					System.out.println("Cycle: " + last + "->" + start + "->" + next);
+			if (visited[next] && (next != last)) {
+				this.cycles = true;
 			}
 
 			if (!visited[next]) {
@@ -256,6 +257,9 @@ public class Graph {
 		this.dfsTraversal(0);
 		this.shouldPrint = true;
 
+		int[] sets = new int[this.nVertices];
+		Arrays.fill(sets, -1);
+
 		if(!this.isConnected){
 			System.out.println("The graph is not connected");
 			return null;
@@ -265,13 +269,44 @@ public class Graph {
 
 		while (!this.EdgeQueue.isEmpty()) {
 			EdgeNode temp = this.EdgeQueue.poll();
-			if (!(!toReturn.adjList[temp.vertex1].isEmpty() && !toReturn.adjList[temp.vertex2].isEmpty())) {
+			if (this.sets(temp.vertex1, temp.vertex2, sets)) {
 				toReturn.addEdge(temp);
 				System.out.println("Adding edge: "+temp.toString());
 			}
 		}
 
 		return toReturn;
+	}
+	private boolean sets(int node, int node2, int[] sets){
+		if (sets[node] != sets[node2]){
+			int tempHigh;
+			int newNum;
+			if(sets[node] == -1 || sets[node2] == -1){
+				tempHigh = -1;
+				newNum = sets[node] < 0 ? sets[node2] : sets[node];
+
+			}else if (sets[node2] < sets[node]){
+				tempHigh = sets[node];
+				newNum = sets[node2];
+			} else{
+				tempHigh = sets[node2];
+				newNum = sets[node];
+			}
+			sets[node] = sets[node2] = newNum;
+			if (tempHigh != -1){
+				for (int i = 0; i < sets.length; i++) {
+					if(sets[i] == tempHigh){
+						sets[i] = sets[node];
+					}
+				}
+			}
+		}else if (sets[node] == sets[node2] && sets[node] == -1){
+			sets[node] = sets[node2] = node2 > node ? node : node2;
+		} else if (sets[node] == sets[node2]){
+			return false;
+		}
+
+		return true;
 	}
 }
 
