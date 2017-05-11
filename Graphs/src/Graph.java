@@ -1,3 +1,9 @@
+/*
+ *  Gabriel Sturtevant
+ *  Comp 496ALG
+ *  Schwartz
+ *  T-Th 8:00 AM
+ */
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
